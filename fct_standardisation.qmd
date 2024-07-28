@@ -2,9 +2,17 @@
 
 ## Introduction
 
-![](images/Workflow_v2.png){#fig-framework}
 
-### Selecting food composition data
+### Objective
+
+This document provide an overview of the steps required to the standardisation of FCTs from diverse sources and harmonisation for generating household-specific Nutrient Conversion Tables (NCTs). More details about the framework used and the cleaned data that can be found [in this repository](), and its documentation.
+ 
+For easy navigation and use of this script it is recommended to use Rstudio. In RStudio please click the "Show Document Outline" button to the right of the source button, at the top right of this window. This will allow for easier navigation of the script.
+
+
+![](images/Workflow_v6.0.0.jpg){#fig-framework}
+
+## Identifying and obtaining the food composition data
 
 When selecting the food composition table or database (FCT) that will be used, it is good to reflect on the following questions:
 
@@ -14,12 +22,18 @@ When selecting the food composition table or database (FCT) that will be used, i
 
 3.  Data quality and reporting (e.g., what are the method of analysis and metadata available?).
 
+Additionally, we recommend using the "FAO/INFOODS Evaluation framework to assess the quality of published food composition tables and databases - User guide" for evaluating the quality of the FCT that would be used (@charrondiereFAOINFOODSEvaluation2023).
 
-### Objective
+Once the FCTs are selected, if they have not been previously standardised previously (See this repository), then they should be standardised so they can be used and combined with other FCTs. 
 
-This document provide, together with the template document, the steps and description for cleaning and standardising FCTs from diverse sources. More details about the cleaned data that can be found in the repository is documented in this folder (documentation).
 
-For easy navigation and use of this script it is recommended to use Rstudio. In RStudio please click the "Show Document Outline" button to the right of the source button, at the top right of this window. This will allow for easier navigation of the script.
+### Data license 
+
+Before using any dataset, we recommend to check licensing conditions & record the data source, you can use the [README template](link-to-readme-template).
+
+After identiying and ensurign that we have the right to use/ standardise the data for our study, we can move to R(Studio) to start the importing and standardisation of the new FCT. 
+
+
 
 ### Environment Prep
 
@@ -39,12 +53,6 @@ library(here) # file management
 
 ```
 
-
-## Obtaining the raw (FCT) file
-
-### Data license 
-
-Before using any dataset, we recommend to check licensing conditions & record the data source, you can use the [README template](link-to-readme-template).
 
 ### Downloading the data {#sec-download}
 
@@ -77,6 +85,8 @@ f <- "https://www.fao.org/fileadmin/user_upload/faoweb/2020/WAFCT_2019.xlsx"
 
 If using an RStudio project, and you put the .R file and the data file in the same folder as the RStudio project or within a subfolder, files and folders are much easier to navigate as your project/here::here location automatically moves to the main project folder. 
 
+## Importing the data (loading the data)
+
 ### Getting your file into R
 
 If you are using an RStudio project but used a different download method, or already have the file you want to process on your computer, or are using base R we can still use the `here::here()` function, however we will have to find the file first. 
@@ -102,8 +112,6 @@ FCT_file_location <- here::here('data','WA19', "WAFCT_2019.xlsx")
 
 ```
 
-
-## Importing the data (loading the data)
 
 ### Importing Files
 
@@ -284,7 +292,7 @@ group.id <-  unique(str_extract(data.df$Code, "^[:digit:]{2}\\_"))[-1]
 
 ```
 
-# Creating the food_group variable in the FCT
+#### Creating the food_group variable in the FCT
 
 ```{r}
 
@@ -313,15 +321,17 @@ data.df <- data.df %>% #Identifies the food group number from the fdc_id, and ap
 
 In some cases, to minimise the number of missing values, two similar food components are combined into one column/ variable. For
 example, when Beta-carotene and Beta-Carotene Eq. were reported in the same column
-and identified using brackets ([]) around the component values (`CARTEB or [CARTEBEQ]`). However, because we are aiming to have one variable per column, we need to divide the combined variables into two (or more) columns, as such the Beta-carote variable was separated into two independent columns (`CARTEBmg`, `CARTBEQmg`). Note that when we are separating these two food components into the new variable, there are several things that we need to check: we need to check whether they are present in the original FCT, otherwise we may be overwriting values. 
+and identified using brackets ("[]") around the component values (`CARTEB or [CARTEBEQ]`). However, because we are aiming to have one variable per column, we need to divide the combined variables into two (or more) columns, as such the Beta-carote variable was separated into two independent columns (`CARTEBmg`, `CARTBEQmg`). Note that when we are separating these two food components into the new variable, there are several things that we need to check: we need to check whether they are present in the original FCT, otherwise we may be overwriting values. 
 
-1) The variable is not present, then create a new column.
-2) The variable is present: only overwrite if the value is missing in the original column.
-3) Do not remove the brackets from the original variable. As we will add information (metadata) about the quality of the value after removing the brackets. 
+  1) The variable is not present, then create a new column.
 
-### Renaming variable names: Food components definition and re-naming
+  2) The variable is present: only overwrite if the values are missing in the original column.
 
-Each FCT has its own variable names, including for similar food components. Some
+  3) Do not remove the brackets from the original variable. As we will add information (metadata) about the quality of the value after removing the brackets. 
+
+### Renaming variable names
+
+Food components definition and re-naming is a key step to be able to combine multiple data sources. This is because each FCT has its own variable names, including for similar food components. Some
 FCTs included information related to the FAO/ INFOODS food component identifiers
 [(Tagnames)](https://www.fao.org/infoods/infoods/standards-guidelines/food-component-identifiers-tagnames/en/) while other did not. In order to merge all data from various FCTs we
 need to harmonise the names of all the variables and particularly the
@@ -544,7 +554,7 @@ Eg. amino acids (AA) reported per g in 100g of PROT to mg in 100g of EP:
 \\Eq.3: Edible portion = Edible portion (%)/100
 
 
-##### Data quality and reporting (e.g., method of analysis, good metadata)
+#### Data quality and reporting (e.g., method of analysis, good metadata)
 
 
 General quality checks are: the level of detail in the food description, the methods used for nutrient values compilation, and the documentation and degree of detail.
@@ -560,13 +570,10 @@ We are saving the standardised FCT into the data folder, for use in the future.
 # Data Output 
 
 write.csv(data.df, file = here::here("data", paste0(FCT_id, "_FCT_FAO_Tags.csv")), 
-          row.names = FALSE) #Saves the newly-created data table to the Output folder
+          row.names = FALSE) # Saves the newly-created data table to the Output folder
 
 #Run this to clean the environment
 rm(list = ls())
 
 ```
 
-## Further readings
-
-1. Charrondiere, U.R., Stadlmayr, B., Grande, F., Vincent, A., Oseredczuk, M., Sivakumaran, S., Puwastien, P., Judprasong, K., Haytowitz, D., Gnagnarella, P. 2023. FAO/INFOODS Evaluation framework to assess the quality of published food composition tables and databases - User guide. Rome, FAO. https://doi.org/10.4060/cc5371en
